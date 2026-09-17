@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+credentials.json
+config.json
+.cache/
+.env
+.env.*
+*.pem
+*.key
+!docs/screenshots/*.png

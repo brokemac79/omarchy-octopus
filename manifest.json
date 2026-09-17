@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "community.octopus-energy",
+  "name": "Octopus Energy",
+  "version": "0.1.0",
+  "author": "brokemac79",
+  "description": "Agile prices, Home Mini live power and electricity usage. Independent community plugin.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Octopus Energy",
+    "description": "Electricity at a glance",
+    "category": "Info",
+    "allowMultiple": false
+  }
+}
