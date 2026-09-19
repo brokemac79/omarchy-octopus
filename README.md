@@ -91,6 +91,8 @@ regardless of the desktop timezone. API interval timestamps retain their offsets
   its valid-to boundary if no successor is cached.
 - Token renewal is automatic. Requests have a 12-second timeout, no auth-bearing
   redirects, fixed Octopus HTTPS host validation, and bounded pagination.
+  Each response is capped at 1 MiB before JSON parsing; oversized responses
+  retain cached data and back off before retrying (see [SECURITY.md](SECURITY.md)).
 - Last good results survive connection failures with an error message. Cached
   data lives on the local machine; internet access is still needed for freshness.
 
@@ -143,4 +145,3 @@ are retained. No warranty is provided. Octopus Energy and Omarchy names belong
 to their respective owners; no endorsement is implied.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
-

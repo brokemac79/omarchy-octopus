@@ -2,11 +2,68 @@ import sys,unittest
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from octopus import windows,usage_summary,iso,request,SafeError,Adapter
-from unittest.mock import patch
+from octopus import windows,usage_summary,iso,request,SafeError,Adapter,MAX_RESPONSE_BYTES,API
+from unittest.mock import patch,MagicMock
+import io
 import time
 import urllib.parse
 from zoneinfo import ZoneInfo
+
+class ResponseLimitTests(unittest.TestCase):
+    def response(self, body):
+        stream = io.BytesIO(body)
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.read.side_effect = stream.read
+        return response
+
+    def test_valid_responses_up_to_exact_limit(self):
+        for size in (2, MAX_RESPONSE_BYTES):
+            with self.subTest(size=size):
+                response = self.response(b'{}' + b' ' * (size - 2))
+                with patch('octopus.urllib.request.build_opener') as opener:
+                    opener.return_value.open.return_value = response
+                    self.assertEqual(request(API + '/v1/graphql/'), {})
+                response.read.assert_called_once_with(MAX_RESPONSE_BYTES + 1)
+                response.__exit__.assert_called_once()
+
+    def test_oversized_responses_rejected_before_parsing(self):
+        for extra in (1, 10000):
+            with self.subTest(extra=extra):
+                response = self.response(b'{}' + b' ' * (MAX_RESPONSE_BYTES + extra - 2))
+                with patch('octopus.urllib.request.build_opener') as opener, patch('octopus.json.loads') as parse:
+                    opener.return_value.open.return_value = response
+                    with self.assertRaisesRegex(SafeError, 'exceeds 1 MiB'):
+                        request(API + '/v1/graphql/')
+                    parse.assert_not_called()
+                response.read.assert_called_once_with(MAX_RESPONSE_BYTES + 1)
+                response.__exit__.assert_called_once()
+
+    def test_unending_response_is_bounded_and_preserves_cache(self):
+        response = MagicMock()
+        response.__enter__.return_value = response
+        # Simulate a source with unlimited data: it returns any requested amount.
+        response.read.side_effect = lambda amount: b' ' * amount
+        a = Adapter.__new__(Adapter)
+        a.cache = {'live': {'data': {'watts': 700}, 'fetched': 0}}
+        a.errors = []; a.refresh = False
+        with patch('octopus.urllib.request.build_opener') as opener, patch('octopus.json.loads') as parse:
+            opener.return_value.open.return_value = response
+            loader = lambda: request(API + '/v1/graphql/')
+            self.assertEqual(a.section('live', 15, loader), {'watts': 700})
+            self.assertIn('exceeds 1 MiB', a.errors[0])
+            self.assertGreater(a.cache['live']['retryAfter'], time.time())
+            a.section('live', 15, loader)
+            response.read.assert_called_once_with(MAX_RESPONSE_BYTES + 1)
+            parse.assert_not_called()
+
+    def test_invalid_json_still_raises_safe_error(self):
+        response = self.response(b'not json')
+        with patch('octopus.urllib.request.build_opener') as opener:
+            opener.return_value.open.return_value = response
+            with self.assertRaisesRegex(SafeError, 'cached readings retained'):
+                request(API + '/v1/graphql/')
+
 
 class EnergyTests(unittest.TestCase):
     def setUp(self): self.start=datetime(2026,9,17,tzinfo=timezone.utc)

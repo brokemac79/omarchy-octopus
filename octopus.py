@@ -17,6 +17,8 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 API = 'https://api.octopus.energy'
+# Per REST page or GraphQL response; read one extra byte to detect overflow.
+MAX_RESPONSE_BYTES = 1024 * 1024  # 1 MiB, before JSON parsing
 UTC = timezone.utc
 CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home()/'.config')))/'omarchy-octopus'
 CACHE = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home()/'.cache')))/'omarchy-octopus'
@@ -54,7 +56,11 @@ def request(url, payload=None, token=None, key=None):
     if payload is not None: headers['Content-Type'] = 'application/json'
     try:
         req=urllib.request.Request(url, data=None if payload is None else json.dumps(payload).encode(), headers=headers)
-        with urllib.request.build_opener(NoRedirect).open(req, timeout=12) as r: data=json.load(r)
+        with urllib.request.build_opener(NoRedirect).open(req, timeout=12) as r:
+            body = r.read(MAX_RESPONSE_BYTES + 1)
+        if len(body) > MAX_RESPONSE_BYTES:
+            raise SafeError('Octopus response exceeds 1 MiB limit; cached readings retained')
+        data = json.loads(body)
         if data.get('errors'): raise SafeError('Octopus rejected the query; check account access')
         return data
     except urllib.error.HTTPError as e:
