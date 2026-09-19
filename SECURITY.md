@@ -16,8 +16,24 @@ This bound does not rely on Content-Length, including for chunked responses.
 The limit leaves headroom for the current 200-record REST pages and short
 telemetry queries; it is not a limit on the size of parsed Python objects.
 Oversized responses retain cached readings, show an error and use the existing
-60-second retry backoff. Requests also have a 12-second socket timeout (not a
-total wall-clock deadline), and REST pagination is capped at ten pages.
+60-second retry backoff. Requests also have a 12-second socket timeout, and REST
+pagination is capped at ten pages. A separate Linux main-thread signal deadline
+limits the whole CLI refresh to 60 seconds, including waiting for the shared
+cache lock. Slow but continuously progressing responses cannot extend that
+budget. On expiry the worker exits nonzero without a replacement report, so the
+widget retains its previous report and marks the refresh as failed.
+
+API and cached readings are checked for valid structures, timezone-aware
+timestamps and finite numbers before replacing last-good data. Timestamps are
+normalized to UTC; duplicate intervals cannot conceal missing day coverage.
+Invalid cached sections are discarded independently so they can be fetched again.
+
+Account setup gathers all inputs before changing files, then takes the refresh
+lock and invalidates old token/readings caches before replacing credentials and
+configuration. Lock acquisition has a 60-second deadline; the local writes are
+not interrupted by that timer. The lock prevents concurrent account mixing, but
+the separate local files are not a crash-atomic transaction. If setup reports a
+file error, correct permissions and rerun setup before relying on the readings.
 
 For a suspected credential leak, revoke/rotate the Octopus key before sharing
 sanitised details. Do not publish a working exploit or secret in a public issue;

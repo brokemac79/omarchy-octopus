@@ -45,12 +45,12 @@ class ResponseLimitTests(unittest.TestCase):
         # Simulate a source with unlimited data: it returns any requested amount.
         response.read.side_effect = lambda amount: b' ' * amount
         a = Adapter.__new__(Adapter)
-        a.cache = {'live': {'data': {'watts': 700}, 'fetched': 0}}
+        a.cache = {'live': {'data': {'at': '2026-09-19T00:00:00+00:00', 'watts': 700}, 'fetched': 0}}
         a.errors = []; a.refresh = False
         with patch('octopus.urllib.request.build_opener') as opener, patch('octopus.json.loads') as parse:
             opener.return_value.open.return_value = response
             loader = lambda: request(API + '/v1/graphql/')
-            self.assertEqual(a.section('live', 15, loader), {'watts': 700})
+            self.assertEqual(a.section('live', 15, loader), {'at': '2026-09-19T00:00:00+00:00', 'watts': 700})
             self.assertIn('exceeds 1 MiB', a.errors[0])
             self.assertGreater(a.cache['live']['retryAfter'], time.time())
             a.section('live', 15, loader)
@@ -101,9 +101,9 @@ class EnergyTests(unittest.TestCase):
             rows=[{'start':iso(start+timedelta(minutes=30*i)),'value':1} for i in range(count)]
             self.assertTrue(usage_summary(rows,[],start,end)['complete'])
     def test_network_failure_keeps_cached_value_and_marks_error(self):
-        a=Adapter.__new__(Adapter);a.cache={'live':{'data':{'watts':700},'fetched':0}};a.errors=[];a.refresh=False
+        a=Adapter.__new__(Adapter);a.cache={'live':{'data':{'at':'2026-09-19T00:00:00+00:00','watts':700},'fetched':0}};a.errors=[];a.refresh=False
         def fail(): raise SafeError('Offline')
-        self.assertEqual(a.section('live',15,fail),{'watts':700})
+        self.assertEqual(a.section('live',15,fail),{'at':'2026-09-19T00:00:00+00:00','watts':700})
         self.assertEqual(a.errors,['live: Offline'])
         self.assertGreater(a.cache['live']['retryAfter'],time.time())
     def test_auth_never_sent_to_foreign_pagination_host(self):

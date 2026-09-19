@@ -78,7 +78,8 @@ Usage covers the most recent 24 **completed** hours, excluding the still-changin
 current half-hour. The range is labelled. Missing readings are not zero-filled.
 Tomorrow can be partially published: the panel shows available/expected intervals.
 Daylight-saving days have 46 or 50 intervals. Display labels use Europe/London
-regardless of the desktop timezone. API interval timestamps retain their offsets.
+regardless of the desktop timezone. API timestamps are normalized to UTC before
+sorting and matching, including the repeated autumn clock-change hour.
 
 ## Refresh and failure behaviour
 
@@ -89,12 +90,17 @@ regardless of the desktop timezone. API interval timestamps retain their offsets
 - Home Mini readings older than 120 seconds are marked stale; the last value
   stays visible, never silently becoming zero. The current price disappears at
   its valid-to boundary if no successor is cached.
-- Token renewal is automatic. Requests have a 12-second timeout, no auth-bearing
+- Token renewal is automatic. Requests have a 12-second socket timeout, no auth-bearing
   redirects, fixed Octopus HTTPS host validation, and bounded pagination.
   Each response is capped at 1 MiB before JSON parsing; oversized responses
   retain cached data and back off before retrying (see [SECURITY.md](SECURITY.md)).
+- The complete refresh, including lock waiting, has a separate 60-second
+  wall-clock deadline. On timeout the worker exits and the widget retains its
+  previous report with a refresh-failure warning.
 - Last good results survive connection failures with an error message. Cached
   data lives on the local machine; internet access is still needed for freshness.
+- Malformed timestamps and non-finite numbers are rejected before replacing good
+  cached readings. Invalid cached sections are discarded independently and retried.
 
 ## Files and privacy
 

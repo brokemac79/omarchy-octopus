@@ -24,6 +24,12 @@ agreement changes, rerun setup. Fixed tariffs, gas and export are not supported.
 Standard-meter fallback has mocked regression coverage, not yet a separate
 live-account acceptance test. Home Mini is the live-tested configuration.
 
+Setup collects all answers before changing saved settings, then takes the same
+exclusive lock as a refresh before replacing settings and clearing old tokens and
+readings. This prevents an in-flight refresh from restoring the previous account's
+cached data after an account change. If setup cannot acquire the lock within its
+deadline, existing settings are left unchanged; retry setup after the refresh ends.
+
 ## Updating
 
 For Git-managed installations:
