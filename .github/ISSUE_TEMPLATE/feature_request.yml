@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest a focused improvement to the plugin.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: "Read VISION.md first. This is a read-only, local-first monitor; please avoid posting account details or real consumption data."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What is difficult today, and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: Describe the UI or data behaviour, including how missing/stale data should appear.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or trade-offs
+      description: Optional. Note new API, privacy or compatibility requirements.
+  - type: dropdown
+    id: verification
+    attributes:
+      label: Basis for the request
+      options: [Observed on a real Omarchy and Octopus setup, Explored with synthetic data, Idea only]
+    validations:
+      required: true
