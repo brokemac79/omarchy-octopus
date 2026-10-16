@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible plugin problem (do not include account data).
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not attach API keys, account or meter identifiers, tokens, cache files or real consumption screenshots. For security vulnerabilities, use private vulnerability reporting as described in SECURITY.md."
+  - type: input
+    id: version
+    attributes:
+      label: Omarchy and plugin versions
+      placeholder: "Omarchy 4.x; plugin commit or version"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation method
+      options: [Git-managed plugin, Manual copy, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the tab, action and whether Home Mini or price-only mode is used. Do not include identifiers.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include only redacted error text or synthetic screenshots.
+    validations:
+      required: true
+  - type: dropdown
+    id: live
+    attributes:
+      label: Verification
+      options: [Observed on real Omarchy and Octopus account, Observed on Omarchy with synthetic data, Reproduced in offline tests only, Not yet reproduced]
+    validations:
+      required: true
